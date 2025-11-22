@@ -142,49 +142,73 @@ src/
     └── universe.ts                   ← All constants (colors, sizes, distances)
 ```
 
-## 7. Evaluation Criteria
+## 7. Implementation Details
 
-Implementations will be judged on:
+### 7.1 Unified Constants System
+To ensure visual and logical consistency, a single source of truth (`UNIVERSE_CONSTANTS`) must govern all physical properties:
 
-1. **Architectural Correctness** (40%)
-   - Is it truly a single unified scene?
-   - Are camera transitions smooth and continuous?
-   - Does the coordinate system maintain correct relationships?
+```typescript
+UNIVERSE_CONSTANTS = {
+  SUN: {
+    COLOR: '#ff0000',
+    EMISSIVE: '#ff0000',
+    EMISSIVE_INTENSITY: 2,
+    RADIUS_SOLAR_VIEW: 2
+  },
+  EARTH: {
+    COLOR: '#2244ff',
+    RADIUS: 1,
+    ORBIT_RADIUS: 10
+  },
+  GALAXY: {
+    CENTER_COLOR: '#9900ff',
+    OUTER_COLOR: '#1b3984',
+    PARTICLE_COUNT: 8000,
+    RADIUS: 50,
+    SOLAR_SYSTEM_DISTANCE: 25
+  }
+}
+```
 
-2. **Astronomical Accuracy** (30%)
-   - Does Earth rotate/orbit correctly?
-   - Is the 23.5° tilt implemented?
-   - Does Beijing face the Sun at noon UTC+8?
+### 7.2 View-Specific Features
 
-3. **Visual Quality** (20%)
-   - Are colors consistent and distinguishable?
-   - Are labels readable via billboarding?
-   - Is the Galaxy aesthetic and recognizable?
+#### Human View (Ground Level)
+- **Ground plane** with Cardinal Direction labels (N, S, E, W)
+- **Sky dome** that rotates based on Time and Date
+- **Ecliptic path** visualization (Sun's apparent annual path)
+- **Milky Way band** visible as dense star particles crossing the sky
+- **Night View indicator** showing the dark side of Earth
+- **Optional**: North Star marker, Big Dipper constellation reference points
 
-4. **Code Quality** (10%)
-   - Is the code modular and maintainable?
-   - Are constants properly extracted?
-   - Is the component structure logical?
+#### Solar System View (Orbital)
+- **Earth's orbit ring** as a semi-transparent guide
+- **Axial tilt visualization** showing Earth's 23.5° angle
+- **Beijing marker** as a red dot on Earth's surface
+- **Coordinate axes** for orientation reference
+- **Sun label** with billboard text
 
-## 8. Verification Tests
+#### Galactic View (Macro)
+- **Full spiral galaxy** particle system
+- **Solar System marker** showing Sun's position in the galaxy
+- **Galactic Center label** with distinct purple color
+- **Camera positioned** to show galaxy structure clearly
 
-### Test 1: Noon Verification
-- Set `month = 6` (June, ~day 180)
-- Set `timeOfDay = 12.0`
-- Switch to `solar-system` view
-- **Expected**: Beijing marker should face directly toward the Sun
+### 7.3 Astronomical Mapping
+Coordinate system conventions:
+- **World Space**: Three.js standard (Y-up, right-handed)
+- **North**: +Z direction in Human View
+- **South**: -Z direction
+- **East/West**: +X/-X directions
+- **Zenith**: +Y (skyward)
 
-### Test 2: View Continuity
-- Start in `human` view
-- Switch to `solar-system`
-- **Expected**: Camera should smoothly pull away from Earth's surface, revealing the orbit
-
-### Test 3: Seasonal Tilt
-- Set `timeOfDay = 12.0`
-- Toggle `month` between 1 (January) and 7 (July)
-- Observe Sun's angle in Human View
-- **Expected**: Sun's elevation should change due to axial tilt
-
-### Test 4: Color Consistency
-- Switch between all three views
-- **Expected**: Sun remains red, Galactic Center remains purple in all contexts
+### 7.4 State Management
+Global state store must include:
+```typescript
+{
+  date: number,           // 0-365 days
+  timeOfDay: number,      // 0-24 hours
+  latitude: number,       // -90 to 90 (default: 39.9 for Beijing)
+  viewMode: 'human' | 'solar-system' | 'galactic',
+  previousViewMode: ViewMode | null  // For transition effects
+}
+```
