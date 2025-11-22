@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production
+dist/
+*/dist/
+build/
+*/build/
+
+# Misc
+.DS_Store
+*/.DS_Store
+.env
+.env.local
+*.log
+coverage/
+.vscode/
+.idea/
