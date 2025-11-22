@@ -126,22 +126,6 @@ Consistent color scheme across all scales for instant recognition:
 - **UI Controls**: Leva (dev panel)
 - **Build Tool**: Vite
 
-### 6.2 Key Components Structure
-```
-src/
-├── components/
-│   ├── views/
-│   │   └── UnifiedView.tsx          ← Single scene containing all objects
-│   ├── Galaxy.tsx                    ← Particle system for Milky Way
-│   ├── Legend.tsx                    ← Color legend UI overlay
-│   ├── ViewSwitcher.tsx              ← View mode buttons
-│   └── SceneContainer.tsx            ← Canvas wrapper
-├── store/
-│   └── simulationStore.ts            ← Global state (date, time, viewMode)
-└── constants/
-    └── universe.ts                   ← All constants (colors, sizes, distances)
-```
-
 ## 7. Implementation Details
 
 ### 7.1 Unified Constants System
