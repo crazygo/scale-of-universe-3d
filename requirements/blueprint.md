@@ -51,9 +51,12 @@ Galaxy Center: Offset at (-25, 0, 0) relative to Sun
 - **Implementation**: Apply rotation to Earth's Y-axis, accounting for Beijing's longitude offset
 
 #### 3.1.2 Revolution (Yearly)
-- **Input**: `date` (0-365 days) or `month` (1-12)
+- **Input**: `date` (0-365 days)
 - **Effect**: Earth's position along its orbital path around the Sun
-- **Path**: Circular orbit in the XZ plane with radius defined by `UNIVERSE_CONSTANTS.EARTH.ORBIT_RADIUS`
+- **Physics**: 
+  - **Elliptical Orbit**: Must use an elliptical path (eccentricity > 0) rather than a perfect circle.
+  - **Orbital Speed**: (Optional) Vary speed based on distance from Sun (Kepler's 2nd Law approximation).
+  - **Scale**: Use a defined scale ratio (e.g., 1 unit = 1 million km) to maintain relative proportions, even if simplified for visualization.
 
 #### 3.1.3 Axial Tilt
 - **Value**: 23.5 degrees
@@ -68,11 +71,17 @@ Galaxy Center: Offset at (-25, 0, 0) relative to Sun
 ## 4. Interaction & Controls
 
 ### 4.1 Time Control
-- **UI Element**: Slider (0-24, step 0.1)
-- **State**: `timeOfDay` in global store
+- **UI Elements**: 
+  - Time Slider (0-24h)
+  - **Simulation Speed Slider**: Multiplier control (e.g., 1x, 60x, 1000x).
+  - **Play/Pause Button**: Toggle automatic time progression.
+- **State**: `timeOfDay`, `isPlaying`, `simulationSpeed`
+- **Physics**:
+  - **Time Dilation**: Default multiplier should be **60x** (1 second real time = 1 minute simulation time).
+  - **Continuous Loop**: Time should wrap around 24h -> 0h automatically.
 - **Effect**: 
-  - Updates Earth's rotation angle
-  - In Human View, rotates the apparent sky/sun position
+  - Updates Earth's rotation angle continuously.
+  - In Human View, sky and celestial bodies move dynamically (Sunrise/Sunset).
 
 ### 4.2 Date Control
 - **UI Element**: Month selector (1-12) or date slider (0-365)
@@ -157,12 +166,17 @@ UNIVERSE_CONSTANTS = {
 ### 7.2 View-Specific Features
 
 #### Human View (Ground Level)
-- **Ground plane** with Cardinal Direction labels (N, S, E, W)
-- **Sky dome** that rotates based on Time and Date
-- **Ecliptic path** visualization (Sun's apparent annual path)
-- **Milky Way band** visible as dense star particles crossing the sky
-- **Night View indicator** showing the dark side of Earth
-- **Optional**: North Star marker, Big Dipper constellation reference points
+- **Camera Anchor**: 
+  - **Center**: Camera must be anchored to the Beijing marker on Earth's surface.
+  - **Rotation**: Camera rotates *with* the Earth. Looking "Out" means facing South/North relative to the ground.
+  - **Experience**: User should observe the Sun rising in the East and setting in the West as time progresses.
+- **Spatial Reference**:
+  - **3D Grid System**: A visible 3D grid or coordinate sphere centered on the observer to define "Local Space" (East/West/North/South/Zenith).
+  - **Ground Plane**: Visual reference for the horizon.
+- **Sky Elements**:
+  - **Ecliptic path** visualization.
+  - **Milky Way band**.
+  - **Night View indicator**.
 
 #### Solar System View (Orbital)
 - **Earth's orbit ring** as a semi-transparent guide
