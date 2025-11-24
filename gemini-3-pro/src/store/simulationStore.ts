@@ -9,10 +9,16 @@ interface SimulationState {
   viewMode: ViewMode;
   previousViewMode: ViewMode | null;
 
+  // Time Control
+  timeSpeed: number; // Multiplier (1 = Realtime, 60 = 1min/sec)
+  isPaused: boolean;
+
   setDate: (date: number) => void;
   setLatitude: (lat: number) => void;
   setViewMode: (mode: ViewMode) => void;
   setTimeOfDay: (time: number) => void;
+  setTimeSpeed: (speed: number) => void;
+  setIsPaused: (paused: boolean) => void;
 }
 
 export const useSimulationStore = create<SimulationState>((set) => ({
@@ -22,6 +28,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   previousViewMode: null,
   timeOfDay: 12, // Noon default
 
+  timeSpeed: 60, // Default: 1 real sec = 1 sim minute
+  isPaused: false,
+
   setDate: (date) => set({ date }),
   setLatitude: (latitude) => set({ latitude }),
   setViewMode: (viewMode) => set((state) => ({
@@ -29,4 +38,6 @@ export const useSimulationStore = create<SimulationState>((set) => ({
     previousViewMode: state.viewMode
   })),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
+  setTimeSpeed: (timeSpeed) => set({ timeSpeed }),
+  setIsPaused: (isPaused) => set({ isPaused }),
 }));

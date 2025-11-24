@@ -1,19 +1,18 @@
 import { useRef, useEffect, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Stars, Text, Billboard, CameraControls } from '@react-three/drei';
-import { Group, MathUtils, Vector3, Matrix4, Quaternion } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { Stars, Text, Billboard, CameraControls, Grid } from '@react-three/drei';
+import { Group, MathUtils, Vector3, Quaternion } from 'three';
 import { useSimulationStore } from '../../store/simulationStore';
 import { Galaxy } from '../Galaxy';
 import { UNIVERSE_CONSTANTS } from '../../constants/universe';
 
 export const UnifiedView = () => {
-    const { date, timeOfDay, viewMode } = useSimulationStore();
+    const { viewMode, date, timeOfDay } = useSimulationStore();
     const cameraControlsRef = useRef<CameraControls>(null);
 
     // Refs for scene objects
     const earthGroupRef = useRef<Group>(null);
     const earthRotationRef = useRef<Group>(null);
-    const beijingRef = useRef<Group>(null);
 
     // Constants
     const orbitRadius = UNIVERSE_CONSTANTS.EARTH.ORBIT_RADIUS;
@@ -21,19 +20,60 @@ export const UnifiedView = () => {
     const galaxyDistance = UNIVERSE_CONSTANTS.GALAXY.SOLAR_SYSTEM_DISTANCE;
 
     // --- Earth Dynamics ---
+    // --- Earth Dynamics ---
     useFrame(() => {
         if (earthGroupRef.current && earthRotationRef.current) {
-            // 1. Orbital Position (Yearly)
-            const yearProgress = date / 365;
-            const orbitAngle = yearProgress * Math.PI * 2;
+            // 1. Orbital Position (Yearly) - Elliptical Orbit
+            // Earth's eccentricity is ~0.0167. Let's exaggerate slightly for visibility if needed, 
+            // but requirements say "Physical Motion". Let's stick to a simple ellipse first.
+            // x = a * cos(theta)
+            // z = b * sin(theta)
+            // where b = a * sqrt(1 - e^2)
+            // Focus is at (c, 0), where c = a * e. Sun is at focus.
 
-            earthGroupRef.current.position.x = Math.cos(orbitAngle) * orbitRadius;
-            earthGroupRef.current.position.z = Math.sin(orbitAngle) * orbitRadius;
+            const eccentricity = 0.05; // Slightly exaggerated for visual effect (Earth is 0.0167)
+            const semiMajorAxis = orbitRadius;
+            const semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricity * eccentricity);
+            const c = semiMajorAxis * eccentricity; // Distance from center to focus
+
+            const yearProgress = date / 365;
+            const meanAnomaly = yearProgress * Math.PI * 2;
+
+            // Simplified: Use Mean Anomaly as Eccentric Anomaly for now (circular speed approximation)
+            // For true variable speed, we'd solve Kepler's equation, but let's start with the shape.
+            // We align Perihelion (closest) to roughly Jan 3 (approx date 3).
+            // Angle 0 = Perihelion? 
+            // In our system, date 0 = Jan 1.
+
+            const orbitAngle = meanAnomaly;
+
+            // Position relative to geometric center of ellipse
+            const x_center = Math.cos(orbitAngle) * semiMajorAxis;
+            const z_center = Math.sin(orbitAngle) * semiMinorAxis;
+
+            // Shift so Sun (Focus) is at (0,0)
+            // If Perihelion is at +X, Sun is at -c relative to center.
+            // So Earth = (x_center + c, z_center).
+
+            earthGroupRef.current.position.x = x_center + c;
+            earthGroupRef.current.position.z = z_center;
 
             // 2. Daily Rotation (Time of Day)
             // Calibrated so 12:00 = Beijing faces Sun
             const beijingLonRad = MathUtils.degToRad(116.4);
-            const sunDirection = orbitAngle + Math.PI;
+
+            // Sun Direction calculation needs to account for new position
+            // Vector from Earth to Sun
+            const earthPos = earthGroupRef.current.position;
+            const sunPos = new Vector3(0, 0, 0);
+            const toSun = sunPos.clone().sub(earthPos).normalize();
+            const sunDirection = Math.atan2(toSun.x, toSun.z); // Angle of Sun relative to Earth
+
+            // We need Earth to face Sun at 12:00.
+            // Rotation Y = SunDir - BeijingLon + TimeOffset
+            // But we need to be careful with coordinate frames.
+            // Let's stick to the previous logic but update sunDirection dynamically.
+
             const timeOffset = ((timeOfDay - 12) / 24) * Math.PI * 2;
 
             earthRotationRef.current.rotation.y = sunDirection - beijingLonRad + timeOffset;
@@ -130,67 +170,26 @@ export const UnifiedView = () => {
             // The useFrame loop will handle the precise locking if we implement it there.
             // For now, let's just zoom close to Earth.
 
-            // We can't easily know the exact position in useEffect without ref access, 
-            // but we can rely on the controls damping to smooth it out if we update in useFrame.
-            // Let's just set a flag or rely on useFrame to "capture" the camera.
+            // Transition handled by useFrame
         }
     }, [viewMode, galaxyDistance]);
 
-    // Specialized Human Camera Logic
-    useFrame(() => {
-        if (viewMode === 'human' && cameraControlsRef.current && earthGroupRef.current && earthRotationRef.current) {
-            // Calculate global position of Beijing again
-            const earthPos = earthGroupRef.current.position;
-            const earthRotY = earthRotationRef.current.rotation.y;
-            const axialTilt = MathUtils.degToRad(23.5);
-
-            const tiltedBeijing = beijingPos.clone()
-                .applyAxisAngle(new Vector3(0, 1, 0), earthRotY)
-                .applyAxisAngle(new Vector3(0, 0, 1), axialTilt);
-
-            const beijingWorldPos = earthPos.clone().add(tiltedBeijing);
-
-            // Up vector at Beijing (Normal to surface)
-            const upVec = tiltedBeijing.clone().normalize();
-
-            // Camera Position: 0.2 units above Beijing
-            const camPos = beijingWorldPos.clone().add(upVec.clone().multiplyScalar(0.2));
-
-            // Look Direction: North?
-            // North is tangent to surface, towards North Pole.
-            // North Pole Local: (0, 1, 0).
-            // Tilted Pole: (0, 1, 0) rotated by tilt.
-            // We can approximate: Look outwards + slight up?
-            // Or just look at the Sun (0,0,0) if it's day?
-            // Let's look "Out" from center for now.
-            const target = camPos.clone().add(upVec);
-
-            cameraControlsRef.current.setLookAt(
-                camPos.x, camPos.y, camPos.z,
-                beijingWorldPos.x, beijingWorldPos.y, beijingWorldPos.z, // Looking down at Beijing?
-                true
-            );
-
-            // Note: This might fight with user controls. 
-            // Ideally we disable user controls in Human mode or make them rotate around the camera pos.
-        }
-    });
-
     return (
         <group>
-            <CameraControls ref={cameraControlsRef} smoothTime={1.0} />
+            {/* Stars Background */}
+            <Stars radius={300} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-            {/* --- GALAXY (Background) --- */}
-            {/* Centered at -25, 0, 0 */}
+            {/* Galaxy */}
             <group position={[-galaxyDistance, 0, 0]}>
                 <Galaxy />
                 <Billboard position={[0, 10, 0]}>
-                    <Text fontSize={5} color={UNIVERSE_CONSTANTS.GALAXY.CENTER_COLOR}>Galactic Center</Text>
+                    <Text fontSize={5} color={UNIVERSE_CONSTANTS.GALAXY.CENTER_COLOR}>
+                        Galactic Center
+                    </Text>
                 </Billboard>
             </group>
 
-            {/* --- SOLAR SYSTEM --- */}
-            {/* Sun at 0,0,0 */}
+            {/* Solar System Center (Sun) */}
             <mesh position={[0, 0, 0]}>
                 <sphereGeometry args={[UNIVERSE_CONSTANTS.SUN.RADIUS_SOLAR_VIEW, 32, 32]} />
                 <meshStandardMaterial
@@ -198,43 +197,70 @@ export const UnifiedView = () => {
                     emissive={UNIVERSE_CONSTANTS.SUN.EMISSIVE}
                     emissiveIntensity={UNIVERSE_CONSTANTS.SUN.EMISSIVE_INTENSITY}
                 />
-                <pointLight intensity={2} distance={100} decay={2} />
             </mesh>
             <Billboard position={[0, 3, 0]}>
-                <Text fontSize={1} color={UNIVERSE_CONSTANTS.SUN.COLOR}>Sun</Text>
+                <Text fontSize={2} color={UNIVERSE_CONSTANTS.SUN.COLOR}>Sun</Text>
             </Billboard>
 
-            {/* Earth Orbit */}
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[orbitRadius - 0.1, orbitRadius + 0.1, 128]} />
-                <meshBasicMaterial color="#888" side={2} transparent opacity={0.3} />
-            </mesh>
-
-            {/* --- EARTH SYSTEM --- */}
+            {/* Earth Group */}
             <group ref={earthGroupRef}>
+                {/* Orbit Visualization */}
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[orbitRadius - 0.1, orbitRadius + 0.1, 128]} />
+                    <meshBasicMaterial color="#888" side={2} transparent opacity={0.3} />
+                </mesh>
+
+                {/* Earth Rotation Group (Axial Tilt + Daily Spin) */}
                 <group rotation={[0, 0, MathUtils.degToRad(23.5)]}> {/* Axial Tilt */}
                     <group ref={earthRotationRef}> {/* Daily Spin */}
                         {/* Earth Sphere */}
                         <mesh>
-                            <sphereGeometry args={[earthRadius, 32, 32]} />
+                            <sphereGeometry args={[UNIVERSE_CONSTANTS.EARTH.RADIUS, 32, 32]} />
                             <meshStandardMaterial color={UNIVERSE_CONSTANTS.EARTH.COLOR} roughness={0.7} />
-                        </mesh>
 
-                        {/* Beijing Marker & Human View Elements */}
-                        <group position={beijingPos}>
-                            <mesh>
-                                <sphereGeometry args={[0.05, 16, 16]} />
-                                <meshBasicMaterial color="red" />
-                            </mesh>
-                            {/* Compass / Ground Plane - Only visible when close? */}
-                            <group rotation={[-Math.PI / 2, 0, 0]}> {/* Align with surface roughly? No, need precise normal alignment */}
-                                {/* Simplified Ground Marker */}
-                                <mesh position={[0, 0.01, 0]}>
-                                    <ringGeometry args={[0.1, 0.12, 32]} />
-                                    <meshBasicMaterial color="white" />
+                            {/* Beijing Marker */}
+                            <group position={beijingPos}>
+                                <mesh>
+                                    <sphereGeometry args={[0.05, 16, 16]} />
+                                    <meshBasicMaterial color="red" />
                                 </mesh>
+                                <Billboard position={[0, 0.2, 0]}>
+                                    <Text fontSize={0.3} color="white">Beijing</Text>
+                                </Billboard>
+
+                                {/* 3D Grid for Human View */}
+                                {viewMode === 'human' && (
+                                    <group
+                                        position={[0, 0.01, 0]} // Slightly above the marker
+                                        quaternion={new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), beijingPos.clone().normalize())}
+                                    >
+                                        <Grid
+                                            args={[10, 10]} // 10x10 units grid
+                                            cellColor={0x888888}
+                                            sectionColor={0x444444}
+                                            fadeDistance={30}
+                                            fadeStrength={1}
+                                            infiniteGrid={false}
+                                            position={[0, 0, 0]}
+                                            rotation={[Math.PI / 2, 0, 0]} // Rotate to be flat on the local XZ plane
+                                        />
+                                        {/* Cardinal Directions */}
+                                        <Billboard position={[0, 0, -5]}> {/* North */}
+                                            <Text fontSize={0.5} color="white">N</Text>
+                                        </Billboard>
+                                        <Billboard position={[0, 0, 5]}> {/* South */}
+                                            <Text fontSize={0.5} color="white">S</Text>
+                                        </Billboard>
+                                        <Billboard position={[5, 0, 0]}> {/* East */}
+                                            <Text fontSize={0.5} color="white">E</Text>
+                                        </Billboard>
+                                        <Billboard position={[-5, 0, 0]}> {/* West */}
+                                            <Text fontSize={0.5} color="white">W</Text>
+                                        </Billboard>
+                                    </group>
+                                )}
                             </group>
-                        </group>
+                        </mesh>
                     </group>
                 </group>
             </group>
