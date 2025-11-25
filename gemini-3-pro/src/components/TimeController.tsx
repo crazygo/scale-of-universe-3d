@@ -11,7 +11,7 @@ export const TimeController = () => {
         // timeSpeed is multiplier (e.g. 60 means 1 sec real = 60 sec sim).
         // We need to add (delta * timeSpeed) seconds to our current time.
 
-        const secondsToAdd = delta * timeSpeed;
+        const secondsToAdd = delta * timeSpeed * 10;
         const hoursToAdd = secondsToAdd / 3600;
 
         let newTime = timeOfDay + hoursToAdd;

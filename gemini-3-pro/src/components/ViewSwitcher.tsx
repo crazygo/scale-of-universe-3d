@@ -12,7 +12,7 @@ export const ViewSwitcher = () => {
 
     return (
         <div style={{
-            position: 'absolute',
+            position: 'fixed', // Changed to fixed to ensure it's on top of everything
             bottom: 20,
             left: '50%',
             transform: 'translateX(-50%)',
@@ -21,7 +21,9 @@ export const ViewSwitcher = () => {
             background: 'rgba(0,0,0,0.5)',
             padding: '10px',
             borderRadius: '12px',
-            backdropFilter: 'blur(4px)'
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999, // Increased zIndex
+            pointerEvents: 'auto'
         }}>
             {modes.map((mode) => (
                 <button

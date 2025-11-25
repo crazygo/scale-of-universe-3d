@@ -13,23 +13,33 @@ interface SimulationState {
   timeSpeed: number; // Multiplier (1 = Realtime, 60 = 1min/sec)
   isPaused: boolean;
 
+  // Celestial Body Sizing
+  scaleFactorSun: number;
+  scaleFactorEarth: number;
+
   setDate: (date: number) => void;
   setLatitude: (lat: number) => void;
   setViewMode: (mode: ViewMode) => void;
   setTimeOfDay: (time: number) => void;
   setTimeSpeed: (speed: number) => void;
   setIsPaused: (paused: boolean) => void;
+
+  setScaleFactorSun: (scale: number) => void;
+  setScaleFactorEarth: (scale: number) => void;
 }
 
 export const useSimulationStore = create<SimulationState>((set) => ({
   date: 0, // Start at day 0
   latitude: 39.9, // Default to Beijing latitude (~40 degrees North)
-  viewMode: 'human',
+  viewMode: 'solar-system',
   previousViewMode: null,
   timeOfDay: 12, // Noon default
 
-  timeSpeed: 60, // Default: 1 real sec = 1 sim minute
+  timeSpeed: 3600, // Default: 1 real sec = 1 sim hour
   isPaused: false,
+
+  scaleFactorSun: 1.0,
+  scaleFactorEarth: 1.0,
 
   setDate: (date) => set({ date }),
   setLatitude: (latitude) => set({ latitude }),
@@ -40,4 +50,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setTimeSpeed: (timeSpeed) => set({ timeSpeed }),
   setIsPaused: (isPaused) => set({ isPaused }),
+
+  setScaleFactorSun: (scaleFactorSun) => set({ scaleFactorSun }),
+  setScaleFactorEarth: (scaleFactorEarth) => set({ scaleFactorEarth }),
 }));

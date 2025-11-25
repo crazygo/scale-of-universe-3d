@@ -1,4 +1,6 @@
 export const UNIVERSE_CONSTANTS = {
+    SCALE_FACTOR_SUN: 1.0, // New constant
+    SCALE_FACTOR_EARTH: 1.0, // New constant
     SUN: {
         COLOR: '#ff0000', // Red as requested
         EMISSIVE: '#ff0000',
