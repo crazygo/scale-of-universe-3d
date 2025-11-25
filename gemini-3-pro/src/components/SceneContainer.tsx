@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useControls, folder } from 'leva';
 import { useSimulationStore } from '../store/simulationStore';
@@ -20,7 +21,7 @@ export const SceneContainer = () => {
     } = useSimulationStore();
 
     // Leva controls for debugging/interaction
-    useControls(() => ({ // Changed to a function to prevent re-renders issues with Leva
+    const [, set] = useControls(() => ({ // Changed to a function to prevent re-renders issues with Leva
         'Simulation Control': folder({
             isPaused: {
                 value: isPaused,
@@ -91,6 +92,12 @@ export const SceneContainer = () => {
             },
         }, { collapsed: true }) // Collapse manual controls by default
     }), [viewMode]);
+
+    // Sync store timeSpeed to Leva controls
+    useEffect(() => {
+        // @ts-ignore - Leva types expect folder structure but runtime supports flat keys
+        set({ timeSpeed });
+    }, [timeSpeed, set]);
 
     return (
         <div style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative' }}>

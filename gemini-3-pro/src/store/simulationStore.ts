@@ -43,10 +43,17 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
   setDate: (date) => set({ date }),
   setLatitude: (latitude) => set({ latitude }),
-  setViewMode: (viewMode) => set((state) => ({
-    viewMode,
-    previousViewMode: state.viewMode
-  })),
+  setViewMode: (viewMode) => set((state) => {
+    let newSpeed = state.timeSpeed;
+    if (viewMode === 'human' && state.timeSpeed > 30) {
+      newSpeed = 30;
+    }
+    return {
+      viewMode,
+      previousViewMode: state.viewMode,
+      timeSpeed: newSpeed
+    };
+  }),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setTimeSpeed: (timeSpeed) => set({ timeSpeed }),
   setIsPaused: (isPaused) => set({ isPaused }),
