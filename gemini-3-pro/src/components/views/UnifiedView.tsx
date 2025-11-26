@@ -4,6 +4,7 @@ import { Stars, CameraControls, Billboard, Text, Line, Grid, useTexture } from '
 import { Group, MathUtils, Vector3, Quaternion, Matrix4, DoubleSide } from 'three';
 import { useSimulationStore } from '../../store/simulationStore';
 import { Galaxy } from '../Galaxy';
+import { Sun } from '../Sun';
 import { UNIVERSE_CONSTANTS } from '../../constants/universe';
 
 interface UnifiedViewProps {
@@ -282,17 +283,12 @@ export const UnifiedView = ({
             </group>
 
             {/* Solar System Center (Sun) */}
-            <mesh position={[0, 0, 0]}>
-                <sphereGeometry args={[UNIVERSE_CONSTANTS.SUN.RADIUS_SOLAR_VIEW * (viewMode === 'solar-system' ? scaleFactorSun : 1), 32, 32]} />
-                <meshStandardMaterial
-                    color={UNIVERSE_CONSTANTS.SUN.COLOR}
-                    emissive={UNIVERSE_CONSTANTS.SUN.EMISSIVE}
-                    emissiveIntensity={UNIVERSE_CONSTANTS.SUN.EMISSIVE_INTENSITY}
-                />
-            </mesh>
-            <Billboard position={[0, 3, 0]}>
-                <Text fontSize={2} color={UNIVERSE_CONSTANTS.SUN.COLOR}>Sun</Text>
-            </Billboard>
+            <group position={[0, 0, 0]}>
+                <Sun radius={UNIVERSE_CONSTANTS.SUN.RADIUS_SOLAR_VIEW * (viewMode === 'solar-system' ? scaleFactorSun : 1)} />
+                <Billboard position={[0, 3, 0]}>
+                    <Text fontSize={2} color={UNIVERSE_CONSTANTS.SUN.COLOR}>Sun</Text>
+                </Billboard>
+            </group>
 
             {/* Orbit Visualization - Realistic Ellipse */}
             <Line
